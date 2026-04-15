@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="clr-namespace:AvaloniaApplication1.Models"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="AvaloniaApplication1.Views.MainWindow"
+        x:CompileBindings="False"
+        Title="OwlTech File Manager">
+        <Grid>
+                <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TreeView Grid.Row="1" x:Name="DirectoryTreeView" Margin="5">
+                        <TreeView.ItemTemplate>
+                                <TreeDataTemplate x:DataType="models:ListableItem" ItemsSource="{Binding Children}">
+                                        <TextBlock Text="{Binding Name}"/>
+                                </TreeDataTemplate>
+                        </TreeView.ItemTemplate>
+                </TreeView>
+        </Grid>
+</Window>
