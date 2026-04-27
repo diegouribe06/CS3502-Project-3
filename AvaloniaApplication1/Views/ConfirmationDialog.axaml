@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="180"
+        x:Class="AvaloniaApplication1.Views.ConfirmationDialog"
+        Title="Confirm"
+        Width="420"
+        Height="180"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="16" RowDefinitions="Auto,Auto">
+        <TextBlock x:Name="MessageTextBlock"
+                   Text="Are you sure?"
+                   TextWrapping="Wrap"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="12"
+                    Margin="0,16,0,0">
+            <Button x:Name="CancelButton"
+                    Content="Cancel"
+                    MinWidth="100"
+                    Click="OnCancelClicked"/>
+            <Button x:Name="ConfirmButton"
+                    Content="Confirm"
+                    MinWidth="100"
+                    Click="OnConfirmClicked"/>
+        </StackPanel>
+    </Grid>
+</Window>
+

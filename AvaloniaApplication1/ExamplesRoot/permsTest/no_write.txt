@@ -1,0 +1,2 @@
+This file is set to read-only for owner (no write bit).
+Trying to save over this should raise a permission error.

@@ -12,6 +12,7 @@
         <PackageReference Include="Avalonia.Desktop" Version="12.0.0"/>
         <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.0"/>
         <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.0"/>
+        <PackageReference Include="System.IO.FileSystem.AccessControl" Version="5.0.0"/>
         <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.0">
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
@@ -21,11 +22,16 @@
     <ItemGroup>
       <Folder Include="ExamplesRoot\Child 1\Grandchild 1\" />
       <Folder Include="ExamplesRoot\Child 1\Grandchild 2\" />
+      <Folder Include="ExamplesRoot\Graphical Testing\PermsTest\" />
     </ItemGroup>
 
     <ItemGroup>
       <Compile Update="Views\MainWindow.axaml.cs">
         <DependentUpon>MainWindow.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\FileViewer.axaml.cs">
+        <DependentUpon>FileViewer.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
     </ItemGroup>

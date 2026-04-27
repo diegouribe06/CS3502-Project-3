@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="AvaloniaApplication1.Views.CloseViewerConfirmation"
+        Title="Confirm Close"
+        Width="360"
+        Height="160"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="16" RowDefinitions="Auto,Auto">
+        <TextBlock Text="Close the file viewer without saving?"
+                   TextWrapping="Wrap"
+                   HorizontalAlignment="Center"/>
+
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="12"
+                    Margin="0,16,0,0">
+            <Button Content="Cancel" MinWidth="90" Click="OnCancelClicked"/>
+            <Button Content="Close" MinWidth="90" Click="OnCloseClicked"/>
+        </StackPanel>
+    </Grid>
+</Window>

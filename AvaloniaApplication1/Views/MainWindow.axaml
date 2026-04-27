@@ -6,18 +6,106 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="AvaloniaApplication1.Views.MainWindow"
         x:CompileBindings="False"
+        KeyDown="OnMainWindowKeyDown"
         Title="OwlTech File Manager">
-        <Grid>
-                <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <TreeView Grid.Row="1" x:Name="DirectoryTreeView" Margin="5">
+        <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,6,*">
+                <Grid Grid.Row="0" Grid.ColumnSpan="3" Margin="5" ColumnDefinitions="*,Auto,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                                <Button x:Name="CopyButton" Content="Copy" Click="OnCopyClicked"/>
+                                <Button x:Name="CutButton" Content="Cut" Click="OnCutClicked"/>
+                                <Button x:Name="PasteButton" Content="Paste" Click="OnPasteClicked"/>
+                                <Separator/>
+                                <Button x:Name="AddFileButton" Content="Add File" Click="OnAddFileClicked"/>
+                                <Button x:Name="AddFolderButton" Content="Add Folder" Click="OnAddFolderClicked"/>
+                                <Button x:Name="RenameButton" Content="Rename" Click="OnRenameClicked"/>
+                                <Button x:Name="MoveButton" Content="Move" Click="OnMoveClicked"/>
+                                <Button x:Name="DeleteButton" Content="Delete" Click="OnDeleteClicked"/>
+                                <Separator/>
+                                <Button x:Name="RefreshFolderButton" Content="Refresh Folder" Click="OnRefreshFolderClicked"/>
+                                <Button x:Name="ExpandFolderButton" Content="Expand Folder" Click="OnExpandFolderClicked"/>
+                                <Button x:Name="CollapseFolderButton" Content="Collapse Folder" Click="OnCollapseFolderClicked"/>
+                        </StackPanel>
+
+                        <TextBox x:Name="SearchTextBox"
+                                 Grid.Column="1"
+                                 Width="260"
+                                 Margin="8,0"
+                                 VerticalAlignment="Center"
+                                 PlaceholderText="Search tree..."
+                                 TextChanged="OnSearchTextChanged"/>
+
+                        <CheckBox x:Name="LightModeToggle"
+                                  Grid.Column="2"
+                                  VerticalAlignment="Center"
+                                  Content="Light mode"
+                                  IsThreeState="False"
+                                  Click="OnLightModeToggleChanged"/>
+                </Grid>
+
+                <TreeView Grid.Row="1" Grid.Column="0" x:Name="DirectoryTreeView" Margin="5">
+                        <TreeView.Styles>
+                                <Style Selector="TreeViewItem">
+                                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="IsVisible" Value="{Binding IsVisibleInSearch}"/>
+                                </Style>
+                        </TreeView.Styles>
                         <TreeView.ItemTemplate>
                                 <TreeDataTemplate x:DataType="models:ListableItem" ItemsSource="{Binding Children}">
-                                        <TextBlock Text="{Binding Name}"/>
+                                        <Border Padding="4,2"
+                                                Background="Transparent"
+                                                HorizontalAlignment="Stretch">
+                                                <TextBlock Text="{Binding Name}"
+                                                           Classes.folderItem="{Binding IsDirectory}"
+                                                           Classes.treeItem="True"/>
+                                        </Border>
                                 </TreeDataTemplate>
                         </TreeView.ItemTemplate>
                 </TreeView>
+
+                <GridSplitter Grid.Row="1" Grid.Column="1"
+                              Width="6"
+                              ResizeDirection="Columns"
+                              ResizeBehavior="PreviousAndNext"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Background="#33000000"/>
+
+                <Border Grid.Row="1" Grid.Column="2" Margin="5" Padding="10" BorderBrush="Gray" BorderThickness="1">
+                        <Grid>
+                                <TextBlock x:Name="NoSelectionTextBlock"
+                                           Text="No file selected"
+                                           FontWeight="SemiBold"
+                                           FontSize="16"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+
+                                <StackPanel x:Name="FileInformationPanel" Spacing="8" IsVisible="False">
+                                <TextBlock Text="File Information" FontWeight="Bold" FontSize="16"/>
+                                <TextBlock Text="Name:" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="NameValueTextBlock"/>
+
+                                <TextBlock Text="Extension:" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="ExtensionValueTextBlock"/>
+
+                                <TextBlock Text="Path:" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="PathValueTextBlock" TextWrapping="Wrap"/>
+
+                                <TextBlock Text="Type:" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="TypeValueTextBlock"/>
+
+                                <TextBlock Text="Last Modified:" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="LastModifiedValueTextBlock"/>
+
+                                <TextBlock Text="Created:" FontWeight="SemiBold"
+                                           ToolTip.Tip="On some Linux/macOS filesystems, creation time (birth time) is not available and may match Last Modified."/>
+                                <TextBlock x:Name="CreatedValueTextBlock"/>
+
+                                <TextBlock Text="Permissions:" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="PermissionsValueTextBlock"/>
+                                </StackPanel>
+                        </Grid>
+                </Border>
         </Grid>
 </Window>
