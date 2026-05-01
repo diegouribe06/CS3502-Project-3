@@ -28,7 +28,7 @@
                 </Style>
             </TreeView.Styles>
             <TreeView.ItemTemplate>
-                <TreeDataTemplate x:DataType="models:ListableItem" ItemsSource="{Binding DirectoryChildren}">
+                <TreeDataTemplate x:DataType="models:ListableItem" ItemsSource="{Binding FolderPickerChildren}">
                     <TextBlock Text="{Binding Name}"/>
                 </TreeDataTemplate>
             </TreeView.ItemTemplate>

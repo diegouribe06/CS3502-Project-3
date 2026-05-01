@@ -1,0 +1,94 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AvaloniaApplication1.Views.ErrorDialog"
+        Title="Error"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        SizeToContent="WidthAndHeight"
+        MinWidth="450"
+        MaxWidth="600">
+
+    <StackPanel Orientation="Vertical" Spacing="16" Margin="20">
+        <!-- Error Icon and Title -->
+        <StackPanel Orientation="Horizontal" Spacing="12">
+            <TextBlock Text="⚠️" FontSize="28" VerticalAlignment="Center" />
+            <TextBlock x:Name="TitleTextBlock" 
+                       FontSize="18" 
+                       FontWeight="Bold" 
+                       VerticalAlignment="Center"
+                       Foreground="#D32F2F" />
+        </StackPanel>
+
+        <!-- Error Message -->
+        <TextBlock x:Name="ErrorMessageTextBlock" 
+                   TextWrapping="Wrap" 
+                   FontSize="14"
+                   Foreground="#424242" />
+
+        <!-- Detailed Context (optional) -->
+        <Border x:Name="ContextBorder" 
+                Background="#F5F5F5" 
+                CornerRadius="4" 
+                Padding="12"
+                IsVisible="False">
+            <StackPanel Orientation="Vertical" Spacing="8">
+                <TextBlock Text="Additional Context:" 
+                           FontWeight="Bold" 
+                           FontSize="12"
+                           Foreground="#666666" />
+                <TextBlock x:Name="ContextTextBlock" 
+                           TextWrapping="Wrap" 
+                           FontSize="12"
+                           Foreground="#555555" />
+            </StackPanel>
+        </Border>
+
+        <!-- Suggestion (optional) -->
+        <Border x:Name="SuggestionBorder" 
+                Background="#E8F5E9" 
+                CornerRadius="4" 
+                Padding="12"
+                IsVisible="False">
+            <StackPanel Orientation="Vertical" Spacing="8">
+                <TextBlock Text="💡 Suggestion:" 
+                           FontWeight="Bold" 
+                           FontSize="12"
+                           Foreground="#2E7D32" />
+                <TextBlock x:Name="SuggestionTextBlock" 
+                           TextWrapping="Wrap" 
+                           FontSize="12"
+                           Foreground="#1B5E20" />
+            </StackPanel>
+        </Border>
+
+        <!-- Details (hidden by default) -->
+        <Border x:Name="DetailsBorder"
+                Background="#F5F5F5"
+                CornerRadius="4"
+                Padding="8"
+                IsVisible="False">
+            <ScrollViewer Height="160" VerticalScrollBarVisibility="Auto">
+                <TextBox x:Name="DetailsTextBox"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         IsReadOnly="True"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         Foreground="#212121" />
+            </ScrollViewer>
+        </Border>
+
+        <!-- Buttons -->
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button x:Name="DetailsButton"
+                    Content="Show Details"
+                    MinWidth="100" />
+            <Button x:Name="OkButton" 
+                    Content="OK" 
+                    IsDefault="True"
+                    MinWidth="80"
+                    Click="OnOkClicked" />
+        </StackPanel>
+    </StackPanel>
+</Window>
+

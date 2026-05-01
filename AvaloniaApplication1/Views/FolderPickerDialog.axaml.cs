@@ -19,6 +19,9 @@ public partial class FolderPickerDialog : Window
     private readonly TreeView _folderTreeView;
     private readonly Button _cancelButton;
     private readonly Button _selectButton;
+    private readonly string _windowTitle;
+    private readonly string _promptText;
+    private readonly string _selectButtonText;
     private List<ListableItem> _rootItems = new();
 
     public FolderPickerDialog()
@@ -27,8 +30,17 @@ public partial class FolderPickerDialog : Window
     }
 
     public FolderPickerDialog(string startPath)
+        : this(startPath, "Select Destination Folder", "Select a destination folder", "Select Folder")
+    {
+    }
+
+    public FolderPickerDialog(string startPath, string windowTitle, string promptText, string selectButtonText)
     {
         InitializeComponent();
+        _windowTitle = windowTitle;
+        _promptText = promptText;
+        _selectButtonText = selectButtonText;
+        Title = _windowTitle;
 
         _selectedPathTextBlock = this.FindControl<TextBlock>("SelectedPathTextBlock")
             ?? throw new InvalidOperationException("SelectedPathTextBlock control was not found.");
@@ -38,6 +50,8 @@ public partial class FolderPickerDialog : Window
             ?? throw new InvalidOperationException("CancelButton control was not found.");
         _selectButton = this.FindControl<Button>("SelectButton")
             ?? throw new InvalidOperationException("SelectButton control was not found.");
+        _selectedPathTextBlock.Text = _promptText;
+        _selectButton.Content = _selectButtonText;
 
         string effectiveStartPath = Directory.Exists(startPath)
             ? startPath
@@ -46,7 +60,21 @@ public partial class FolderPickerDialog : Window
         RootTreeResult rootResult = _rootTreeService.BuildRoot(effectiveStartPath);
         if (!rootResult.IsSuccess || rootResult.RootItem is null)
         {
-            throw new DirectoryNotFoundException(rootResult.ErrorMessage ?? "Unable to open the folder picker.");
+            // Instead of throwing here, show the enhanced error dialog when the window opens,
+            // then close the picker and return no result to the caller.
+            string message = rootResult.ErrorMessage ?? "Unable to open the folder picker.";
+            this.Opened += async (_, _) =>
+            {
+                var errorService = new ErrorMessageService();
+                var detail = errorService.GetErrorDetail(message, "Folder Picker Error");
+                var dlg = new ErrorDialog();
+                await dlg.ShowAsync(this, "Folder Picker Error", detail.FriendlyMessage, detail.Context, detail.Suggestion, message);
+                _resultSource?.TrySetResult(null);
+                Close();
+            };
+
+            // Do not continue initialization when root is invalid.
+            return;
         }
 
         _rootItems.Add(rootResult.RootItem);

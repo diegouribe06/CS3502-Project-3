@@ -3,6 +3,10 @@ using System.Runtime.Versioning;
 
 namespace AvaloniaApplication1.Providers.Permissions;
 
+/// <summary>
+/// Reads simple permission information from Unix file mode bits.
+/// It translates the OS-level rwx values into the app's three checkbox-style flags.
+/// </summary>
 [UnsupportedOSPlatform("windows")]
 public class UnixPermissionsProvider : IPermissionsProvider
 {
@@ -13,9 +17,11 @@ public class UnixPermissionsProvider : IPermissionsProvider
             throw new FileNotFoundException($"Path does not exist: {filePath}");
         }
 
+        // Folders can be entered, but they are not executed the same way as files.
         bool isDirectory = Directory.Exists(filePath);
 
-        // On Unix, this returns rwx mode bits for owner/group/other.
+        // Unix stores permissions as rwx mode bits for owner, group, and other users.
+        // The File API returns the combined mode that we can inspect with bit checks.
         UnixFileMode mode = File.GetUnixFileMode(filePath);
 
         return new FilePermissions
@@ -26,7 +32,7 @@ public class UnixPermissionsProvider : IPermissionsProvider
         };
     }
     
-    //helper method to simplify or checks
+    // This helper keeps the permission checks readable when one permission can come from several roles.
     private static bool HasAny(UnixFileMode mode, params UnixFileMode[] flags)
     {
         foreach (UnixFileMode flag in flags)

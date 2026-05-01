@@ -1,3 +1,0 @@
-Open this file in another editor/process and keep it open.
-Then try editing/saving through the app to test concurrent access behavior.
-fhghjlk

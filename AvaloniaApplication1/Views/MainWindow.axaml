@@ -22,6 +22,7 @@
                                 <Button x:Name="DeleteButton" Content="Delete" Click="OnDeleteClicked"/>
                                 <Separator/>
                                 <Button x:Name="RefreshFolderButton" Content="Refresh Folder" Click="OnRefreshFolderClicked"/>
+                                <Button x:Name="ChangeStartupFolderButton" Content="Change Startup Folder" Click="OnChangeStartupFolderClicked"/>
                                 <Button x:Name="ExpandFolderButton" Content="Expand Folder" Click="OnExpandFolderClicked"/>
                                 <Button x:Name="CollapseFolderButton" Content="Collapse Folder" Click="OnCollapseFolderClicked"/>
                         </StackPanel>

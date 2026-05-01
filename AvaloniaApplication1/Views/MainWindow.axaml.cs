@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Styling;
 using AvaloniaApplication1.Models;
 using AvaloniaApplication1.Services;
+using System.Text.Json;
 
 namespace AvaloniaApplication1.Views;
 
@@ -17,8 +18,10 @@ public partial class MainWindow : Window
     public List<ListableItem> RootItems { get; } = new();
     private readonly FileOperationsService _fileOperationsService = new();
     private readonly RootTreeService _rootTreeService = new();
+    private readonly StartupConfigService _startupConfigService = new();
     private readonly TreeViewStateService _treeViewStateService = new();
     private string _currentSearchQuery = string.Empty;
+    private readonly ErrorMessageService _errorMessageService = new();
 
     private Button CopyButtonControl => this.FindControl<Button>("CopyButton") ?? throw new InvalidOperationException("CopyButton control was not found.");
     private Button CutButtonControl => this.FindControl<Button>("CutButton") ?? throw new InvalidOperationException("CutButton control was not found.");
@@ -29,6 +32,7 @@ public partial class MainWindow : Window
     private Button MoveButtonControl => this.FindControl<Button>("MoveButton") ?? throw new InvalidOperationException("MoveButton control was not found.");
     private Button DeleteButtonControl => this.FindControl<Button>("DeleteButton") ?? throw new InvalidOperationException("DeleteButton control was not found.");
     private Button RefreshFolderButtonControl => this.FindControl<Button>("RefreshFolderButton") ?? throw new InvalidOperationException("RefreshFolderButton control was not found.");
+    private Button ChangeStartupFolderButtonControl => this.FindControl<Button>("ChangeStartupFolderButton") ?? throw new InvalidOperationException("ChangeStartupFolderButton control was not found.");
     private Button ExpandFolderButtonControl => this.FindControl<Button>("ExpandFolderButton") ?? throw new InvalidOperationException("ExpandFolderButton control was not found.");
     private Button CollapseFolderButtonControl => this.FindControl<Button>("CollapseFolderButton") ?? throw new InvalidOperationException("CollapseFolderButton control was not found.");
     private TextBox SearchTextBoxControl => this.FindControl<TextBox>("SearchTextBox") ?? throw new InvalidOperationException("SearchTextBox control was not found.");
@@ -41,11 +45,22 @@ public partial class MainWindow : Window
         DirectoryTreeView.SelectionChanged += OnDirectoryTreeSelectionChanged;
         DirectoryTreeView.DoubleTapped += OnDirectoryTreeViewDoubleTapped;
 
-        RootTreeResult initialRootResult = _rootTreeService.CreateInitialRootFromEnvironment();
+        StartupConfiguration startupConfiguration;
+        try
+        {
+            startupConfiguration = _startupConfigService.LoadOrCreate();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
+        {
+            QueueStartupError($"Unable to load startup configuration. {ex.Message}");
+            return;
+        }
+
+        RootTreeResult initialRootResult = _rootTreeService.BuildRoot(startupConfiguration.InitialRoot);
         if (!initialRootResult.IsSuccess || initialRootResult.RootItem is null)
         {
-            //will eventually implement an error screen
-            throw new DirectoryNotFoundException(initialRootResult.ErrorMessage ?? "Initial root is not set correctly!");
+            QueueStartupError(initialRootResult.ErrorMessage ?? "Initial root is not set correctly!");
+            return;
         }
 
         RootItems.Add(initialRootResult.RootItem);
@@ -140,6 +155,14 @@ public partial class MainWindow : Window
         }
 
         var viewer = new FileViewer(item.FullPath, item.Permissions.CanWrite);
+        if (!viewer.IsLoadedSuccessfully)
+        {
+            string errorMessage = viewer.LoadErrorMessage ?? $"Unable to read file '{item.FullPath}'.";
+            var detail = _errorMessageService.GetErrorDetail(errorMessage, "File Read Error");
+            _ = new ErrorDialog().ShowAsync(this, "File Read Error", detail.FriendlyMessage, detail.Context, detail.Suggestion, errorMessage);
+            return;
+        }
+
         viewer.Show(this);
     }
 
@@ -301,7 +324,11 @@ public partial class MainWindow : Window
     {
         if (!result.IsSuccess)
         {
-            await ShowMessageAsync(errorTitle, result.ErrorMessage ?? "Operation failed.");
+            // Show a detailed error dialog with context and suggestions.
+            string errorMessage = result.ErrorMessage ?? "Operation failed.";
+            var errorDetail = _errorMessageService.GetErrorDetail(errorMessage, errorTitle);
+            var errorDialog = new ErrorDialog();
+            await errorDialog.ShowAsync(this, errorTitle, errorDetail.FriendlyMessage, errorDetail.Context, errorDetail.Suggestion, errorMessage);
             return;
         }
 
@@ -333,8 +360,34 @@ public partial class MainWindow : Window
 
     private async Task ShowMessageAsync(string title, string message)
     {
-        var dialog = new ConfirmationDialog(title, message, "OK", "Close");
-        await dialog.ShowAsync(this);
+        // Determine whether the message is an error by checking both title and message text.
+        string lowerTitle = title.ToLowerInvariant();
+        string lowerMessage = message.ToLowerInvariant();
+        bool looksLikeError = lowerTitle.Contains("failed")
+                              || lowerTitle.Contains("error")
+                              || lowerTitle.Contains("unable")
+                              || lowerMessage.Contains("failed")
+                              || lowerMessage.Contains("error")
+                              || lowerMessage.Contains("unable")
+                              || lowerMessage.Contains("does not exist")
+                              || lowerMessage.Contains("not found")
+                              || lowerMessage.Contains("permission")
+                              || lowerMessage.Contains("denied")
+                              || lowerMessage.Contains("no destination")
+                              || lowerMessage.Contains("cannot")
+                              || lowerMessage.Contains("required");
+
+        if (looksLikeError)
+        {
+            var errorDetail = _errorMessageService.GetErrorDetail(message, title);
+            var errorDialog = new ErrorDialog();
+            await errorDialog.ShowAsync(this, title, errorDetail.FriendlyMessage, errorDetail.Context, errorDetail.Suggestion, message);
+        }
+        else
+        {
+            var dialog = new ConfirmationDialog(title, message, "OK", "Close");
+            await dialog.ShowAsync(this);
+        }
     }
 
     private async Task RefreshTreeAsync(string? rootPathOverride = null)
@@ -359,6 +412,18 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (!string.IsNullOrWhiteSpace(rootPathOverride))
+        {
+            try
+            {
+                _startupConfigService.SaveInitialRoot(rootPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                await ShowMessageAsync("Startup Configuration Error", $"Unable to save the updated startup root. {ex.Message}");
+            }
+        }
+
         RootItems.Clear();
         RootItems.Add(refreshResult.RootItem);
 
@@ -381,6 +446,17 @@ public partial class MainWindow : Window
 
         UpdateToolbarState();
         await Task.CompletedTask;
+    }
+
+    private void QueueStartupError(string message)
+    {
+        this.Opened += async (_, _) =>
+        {
+            var detail = _errorMessageService.GetErrorDetail(message, "Startup Error");
+            var dlg = new ErrorDialog();
+            await dlg.ShowAsync(this, "Startup Error", detail.FriendlyMessage, detail.Context, detail.Suggestion, message);
+            Close();
+        };
     }
 
     private bool TryGetSelectedItem(out ListableItem item)
@@ -415,6 +491,7 @@ public partial class MainWindow : Window
         MoveButtonControl.IsEnabled = hasSelection;
         DeleteButtonControl.IsEnabled = hasSelection;
         RefreshFolderButtonControl.IsEnabled = isDirectory;
+        ChangeStartupFolderButtonControl.IsEnabled = RootItems.Count > 0;
         ExpandFolderButtonControl.IsEnabled = isDirectory;
         CollapseFolderButtonControl.IsEnabled = isDirectory;
     }
@@ -435,6 +512,36 @@ public partial class MainWindow : Window
         }
 
         UpdateToolbarState();
+    }
+
+    private async void OnChangeStartupFolderClicked(object? sender, RoutedEventArgs e)
+    {
+        // Always start the folder picker from the root directory
+        string rootPath;
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows, start from the drive root (typically C:\)
+            rootPath = Path.GetPathRoot(Environment.CurrentDirectory) ?? "C:\\";
+        }
+        else
+        {
+            // On Unix-like systems (Linux, macOS), start from the filesystem root
+            rootPath = "/";
+        }
+
+        var folderPicker = new FolderPickerDialog(
+            rootPath,
+            "Change Startup Folder",
+            "Choose the folder that this app should open when it starts.",
+            "Use This Folder");
+
+        string? chosenFolder = await folderPicker.ShowAsync(this);
+        if (string.IsNullOrWhiteSpace(chosenFolder))
+        {
+            return;
+        }
+
+        await RefreshTreeAsync(chosenFolder);
     }
 
     private void OnExpandFolderClicked(object? sender, RoutedEventArgs e)
@@ -510,15 +617,25 @@ public partial class MainWindow : Window
         UpdateToolbarState();
     }
 
-    private static bool SetSearchVisibilityRecursive(ListableItem item, string query, ref ListableItem? firstMatch)
+    private bool SetSearchVisibilityRecursive(ListableItem item, string query, ref ListableItem? firstMatch)
     {
         bool matchesSelf = string.IsNullOrWhiteSpace(query) ||
                            item.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                            item.FullPath.Contains(query, StringComparison.OrdinalIgnoreCase);
 
+        if (!string.IsNullOrWhiteSpace(query) && item.Type == ListableItemType.Directory)
+        {
+            item.EnsureChildrenLoaded();
+        }
+
         bool anyChildVisible = false;
         foreach (ListableItem child in item.Children)
         {
+            if (child.IsPlaceholder)
+            {
+                continue;
+            }
+
             if (SetSearchVisibilityRecursive(child, query, ref firstMatch))
             {
                 anyChildVisible = true;

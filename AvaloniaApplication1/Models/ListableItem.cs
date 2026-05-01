@@ -15,6 +15,7 @@ public class ListableItem : INotifyPropertyChanged
     public string Name { get; }
     public string FullPath { get; }
     public ListableItem? Parent { get; }
+    public bool IsPlaceholder { get; }
     private DateTime _lastModified;
     public DateTime LastModified
     {
@@ -30,6 +31,7 @@ public class ListableItem : INotifyPropertyChanged
     }
 
     private readonly ObservableCollection<ListableItem> _children = new();
+    private bool _childrenLoaded;
 
     public ObservableCollection<ListableItem> Children
     {
@@ -70,7 +72,13 @@ public class ListableItem : INotifyPropertyChanged
     public bool IsExpanded
     {
         get => _isExpanded;
-        set => SetField(ref _isExpanded, value);
+        set
+        {
+            if (SetField(ref _isExpanded, value) && value && Type == ListableItemType.Directory)
+            {
+                EnsureChildrenLoaded();
+            }
+        }
     }
 
     private bool _isVisibleInSearch = true;
@@ -82,71 +90,141 @@ public class ListableItem : INotifyPropertyChanged
 
     public bool IsDirectory => Type == ListableItemType.Directory;
     public IEnumerable<ListableItem> DirectoryChildren => _children.Where(child => child.Type == ListableItemType.Directory);
+    public IEnumerable<ListableItem> FolderPickerChildren => _children.Where(child => child.IsPlaceholder || child.Type == ListableItemType.Directory);
+    public bool HasLoadedChildren => _childrenLoaded;
     public string Extension
     {
         get => Type == ListableItemType.File ? Path.GetExtension(FullPath) : string.Empty;
     }
     #endregion
 
-    //Set children works recursively. It checks for anything that could be considered a child in the current directory
-    //and adds it to the children list. Since the constructor calls this method, it is functionally recursive as new
-    //objects are made when adding to children.
+    //Loads only the direct children for the current directory.
+    //Child items are created without recursively loading their own descendants so startup stays fast.
     public void SetChildren()
     {
-        //make sure old children aren't present
-        _children.Clear();
+        EnsureChildrenLoaded(forceReload: true);
+    }
 
-        //handle non-folders
+    /// <summary>
+    /// Ensures the direct children of this item are loaded once.
+    /// Use <paramref name="forceReload"/> when a refresh is needed.
+    /// </summary>
+    public void EnsureChildrenLoaded(bool forceReload = false)
+    {
         if (Type == ListableItemType.File)
+        {
+            _childrenLoaded = true;
+            return;
+        }
+
+        if (_childrenLoaded && !forceReload)
         {
             return;
         }
-        else if (Type == ListableItemType.Directory)
-        {
-            //get all the child directories
-            foreach (string directory in Directory.GetDirectories(FullPath))
-            {
-                string folderName = Path.GetFileName(directory.TrimEnd(
-                    Path.DirectorySeparatorChar,
-                    Path.AltDirectorySeparatorChar));
 
-                _children.Add(
-                    new ListableItem
-                    (
-                        folderName,
-                        directory,
-                        Directory.GetLastWriteTime(directory),
-                        Directory.GetCreationTime(directory),
-                        ListableItemType.Directory,
-                        this
-                    )
-                );
+        if (!Permissions.CanRead)
+        {
+            if (forceReload)
+            {
+                _children.Clear();
             }
 
-            //get all the child files
-            foreach (string file in Directory.GetFiles(FullPath))
+            if (_children.Count == 0)
             {
-                string fileName = Path.GetFileName(file.TrimEnd());
-                _children.Add(
-                    new ListableItem
-                        (
-                            fileName,
-                            file,
-                            File.GetLastWriteTime(file),
-                            File.GetCreationTime(file),
-                            ListableItemType.File,
-                            this
-                        )
-                    );
+                _children.Add(CreatePlaceholderChild(this));
+            }
+
+            Errors.Add($"Insufficient permissions to read {FullPath}");
+            _childrenLoaded = true;
+            OnPropertyChanged(nameof(DirectoryChildren));
+            OnPropertyChanged(nameof(FolderPickerChildren));
+            return;
+        }
+
+        //make sure old children aren't present
+        _children.Clear();
+
+        if (Type == ListableItemType.Directory)
+        {
+            //get all the child directories with error handling for permission denied
+            try
+            {
+                foreach (string directory in Directory.GetDirectories(FullPath))
+                {
+                    string folderName = Path.GetFileName(directory.TrimEnd(
+                        Path.DirectorySeparatorChar,
+                        Path.AltDirectorySeparatorChar));
+
+                    try
+                    {
+                        _children.Add(
+                            new ListableItem
+                            (
+                                folderName,
+                                directory,
+                                Directory.GetLastWriteTime(directory),
+                                Directory.GetCreationTime(directory),
+                                ListableItemType.Directory,
+                                this
+                            )
+                        );
+                    }
+                    catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+                    {
+                        // Skip this subdirectory and record the error
+                        Errors.Add($"Cannot access folder '{folderName}': {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+            {
+                // If we can't enumerate directories at all, record it but continue to files
+                Errors.Add($"Cannot enumerate subdirectories: {ex.Message}");
+            }
+
+            //get all the child files with error handling for permission denied
+            try
+            {
+                foreach (string file in Directory.GetFiles(FullPath))
+                {
+                    string fileName = Path.GetFileName(file.TrimEnd());
+                    try
+                    {
+                        _children.Add(
+                            new ListableItem
+                                (
+                                    fileName,
+                                    file,
+                                    File.GetLastWriteTime(file),
+                                    File.GetCreationTime(file),
+                                    ListableItemType.File,
+                                    this
+                                )
+                            );
+                    }
+                    catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+                    {
+                        // Skip this file and record the error
+                        Errors.Add($"Cannot access file '{fileName}': {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+            {
+                // If we can't enumerate files at all, record it
+                Errors.Add($"Cannot enumerate files: {ex.Message}");
             }
         }
 
+        _childrenLoaded = true;
+
         // Folder-only projections bind to this property.
         OnPropertyChanged(nameof(DirectoryChildren));
+        OnPropertyChanged(nameof(FolderPickerChildren));
     }
 
     
-    public ListableItem(string name, string path, DateTime lastModified, DateTime created, ListableItemType type, ListableItem? parent = null)
+    public ListableItem(string name, string path, DateTime lastModified, DateTime created, ListableItemType type, ListableItem? parent = null, bool createPlaceholder = false)
     {
         //set the current directory's properties
         Name = name;
@@ -155,22 +233,35 @@ public class ListableItem : INotifyPropertyChanged
         LastModified = lastModified;
         Created = created;
         Type = type;
+
+        if (createPlaceholder)
+        {
+            IsPlaceholder = true;
+            IsVisibleInSearch = false;
+            _childrenLoaded = true;
+            return;
+        }
         
-        //make sure the current directory properties are valid and then get children
+        //make sure the current directory properties are valid
         ValidatePath();
         
         //use a factory to get the correct permissions provider based on the host os
         var permissionsProvider = PermissionsProviderFactory.Create();
         Permissions = permissionsProvider.GetPermissions(FullPath);
         
-        if (Permissions.CanRead)
+        if (Type == ListableItemType.File)
         {
-            SetChildren();
+            _childrenLoaded = true;
         }
         else
         {
-            Errors.Add($"Insufficient permissions to read {FullPath}");
+            _children.Add(CreatePlaceholderChild(this));
         }
+    }
+
+    private static ListableItem CreatePlaceholderChild(ListableItem parent)
+    {
+        return new ListableItem(string.Empty, parent.FullPath, DateTime.MinValue, DateTime.MinValue, ListableItemType.File, parent, createPlaceholder: true);
     }
 
     //used to make sure that the path given is a valid path

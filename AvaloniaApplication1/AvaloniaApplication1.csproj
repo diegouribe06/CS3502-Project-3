@@ -22,7 +22,6 @@
     <ItemGroup>
       <Folder Include="ExamplesRoot\Child 1\Grandchild 1\" />
       <Folder Include="ExamplesRoot\Child 1\Grandchild 2\" />
-      <Folder Include="ExamplesRoot\Graphical Testing\PermsTest\" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Avalonia.Controls;
+using AvaloniaApplication1.Services;
 using System.Windows.Input;
 using System.Threading.Tasks;
 
@@ -11,6 +12,8 @@ public partial class FileViewer : Window
     public string FilePath { get; }
     public string FileContent { get; set; } = string.Empty;
     public bool CanEditFile { get; }
+    public bool IsLoadedSuccessfully { get; private set; } = true;
+    public string? LoadErrorMessage { get; private set; }
     public bool IsReadOnlyMode => !CanEditFile;
     public bool ShowSaveButton => CanEditFile;
     private string _originalFileContent = string.Empty;
@@ -40,7 +43,10 @@ public partial class FileViewer : Window
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            FileContent = $"Unable to read file '{filePath}'.{Environment.NewLine}{ex.Message}";
+            // Mark the file as failed so the caller can avoid opening the viewer window.
+            LoadErrorMessage = $"Unable to read file '{filePath}'. {ex.Message}";
+            IsLoadedSuccessfully = false;
+            FileContent = string.Empty;
             _originalFileContent = FileContent;
         }
 
@@ -62,7 +68,11 @@ public partial class FileViewer : Window
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            FileContent = $"Unable to save file '{FilePath}'.{Environment.NewLine}{ex.Message}";
+            // Show a non-blocking error dialog for save failures.
+            string errorMessage = $"Unable to save file '{FilePath}'. {ex.Message}";
+            // Fire-and-forget showing of the error dialog; do not block the save caller.
+            var detail = new ErrorMessageService().GetErrorDetail(errorMessage, "File Save Error");
+            _ = new ErrorDialog().ShowAsync(this, "File Save Error", detail.FriendlyMessage, detail.Context, detail.Suggestion, errorMessage);
         }
     }
 
