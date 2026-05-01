@@ -1,1087 +1,0 @@
-CS 3502: Operating Systems
-
-Project 3
-File System Implementation
-C
-
-R
-
-U
-
-D
-
-OwlTech File Systems Division
-
-Department of Computer Science
-College of Computing and Software Engineering
-Kennesaw State University
-KSU CCSE CS
-
-CS 3502: Operating Systems Project 3: File System Implementation
-Contents
-1 Introduction
-
-3
-
-2 Operating Systems Concepts
-
-3
-
-3 Learning Resources
-
-5
-
-4 Project Overview
-
-6
-
-5 Functional Requirements
-
-7
-
-6 Implementation Guidelines
-
-8
-
-7 Testing Requirements
-
-9
-
-8 Deliverables
-
-11
-
-9 Report Guidelines
-
-11
-
-10 Demo Video Guidelines
-
-12
-
-1.1 Learning Objectives . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
-1.2 Timeline . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
-2.1 File System Fundamentals . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-2.2 Key OS Mechanisms Your Project Uses . . . . . . . . . . . . . . . . . . . . . . . . .
-2.2.1 File Descriptors . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-2.2.2 Inodes and File Metadata . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-2.2.3 Directory Structure . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-2.3 System Calls You'll Use . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-3.1 File Systems Fundamentals . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-3.2 Language-Specic File I/O . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-3.3 GUI Development Resources . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-3.4 Additional Resources . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-4
-4
-4
-4
-4
-5
-5
-5
-6
-6
-
-4.1 What You'll Build . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
-4.2 Technology Choices . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
-5.1 Core Operations (Required) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
-5.2 Additional Features (Optional but Encouraged) . . . . . . . . . . . . . . . . . . . . . 7
-6.1 Minimum GUI Components . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-6.2 OS-Level Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-6.2.1 File Handle Management . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-6.2.2 Permission Handling . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-6.2.3 Atomic Operations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-6.3 Error Handling . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-6.4 Code Structure . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-8
-8
-8
-8
-8
-9
-9
-
-7.1 Test Scenarios . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
-7.1.1 Basic Operations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
-7.1.2 Directory Operations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
-7.1.3 Edge Cases . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
-9.1 Required Sections . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
-10.1 Video Structure . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
-Page 1
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-11 Reection Questions
-
-13
-
-12 Grading Rubric
-
-15
-
-13 Submission Instructions
-
-17
-
-14 Tips for Success
-
-17
-
-15 Getting Started - Example Structure
-
-18
-
-A Quick Reference - File Operations by Language
-
-21
-
-B Understanding Error Codes
-
-23
-
-11.1 File System Abstractions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
-11.2 Directory Operations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
-11.3 Error Handling and Edge Cases . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
-11.4 Performance Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
-11.5 Real-World Applications . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
-13.1 Required Submission Components . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
-14.1 Development Approach . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
-14.2 Common Pitfalls to Avoid . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
-14.3 Resources . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
-15.1 Basic File Operations (Pseudocode) . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
-15.2 Recommended Architecture . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
-A.1 Python . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
-A.2 C++ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
-A.3 Java . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
-
-Page 2
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-1 Introduction
-Welcome to OwlTech File Systems Division!
-
-After your successful work on threading, IPC, and scheduling, the File Systems Division
-needs your expertise. Our enterprise systems require a robust le management solution with a
-modern graphical interface. You'll build a le manager that demonstrates your understanding
-of OS le system operations while providing a user-friendly experience.
-This project bridges the gap between low-level system calls and high-level user interfaces,
-showing how operating systems abstract le operations for applications.
-1.1 Learning Objectives
-
-Upon completion of this project, you will be able to:
- Understand how operating systems manage les and directories through le descriptors and
-system calls
- Implement CRUD (Create, Read, Update, Delete) operations using OS-level APIs
- Work with le metadata (inodes, permissions, timestamps) and attributes
- Build a graphical user interface that abstracts system-level operations
- Handle errors and edge cases in le operations (permissions, race conditions, etc.)
- Document and present technical work professionally
- Understand the relationship between le system abstractions and underlying OS mechanisms
-1.2 Timeline
-Milestone
-
-Timing
-
-Description
-
-Project Released Start of Project Period Specication available
-Break Period Mid-Project (if applicable) University closed during holiday periods
-Due Date
-See D2L
-Submit by deadline specied in D2L
-Late Deadline See D2L Policy
-Drop box closes per course policy
-Table 1: Project Timeline
-2 Operating Systems Concepts
-Understanding File System Abstractions
-
-This project demonstrates key OS concepts that you've been learning about in lecture. Before
-diving into implementation, review these fundamental concepts that your le manager will
-interact with.
-Page 3
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-2.1 File System Fundamentals
-
-Your le manager interacts with several layers of the OS:
-1. Application Layer (Your GUI): User-facing interface
-2. System Call Interface: open(), read(), write(), close(), etc.
-3. Virtual File System (VFS): OS abstraction layer
-4. File System Implementation: ext4, NTFS, HFS+, etc.
-5. Block Device Layer: Physical storage access
-2.2 Key OS Mechanisms Your Project Uses
-2.2.1 File Descriptors
-When you open a le, the OS returns a le descriptoran integer that represents the open le
-
-in the OS kernel. Your application uses this descriptor for all subsequent operations:
- The OS maintains a le descriptor table per process
- Each entry points to a le table entry in the kernel
- File table entries track: oset, access mode, reference count, and pointer to inode
-2.2.2 Inodes and File Metadata
-An inode (index node) stores metadata about a le:
-
-File size
- Owner and permissions (read/write/execute)
- Timestamps (creation, modication, access)
- Pointers to data blocks on disk
- Reference count (number of hard links)
-Note: The lename is NOT stored in the inodeit's stored in the directory!
-
-
-2.2.3 Directory Structure
-
-Directories are special les that map names to inodes:
- Each entry contains: lename and inode number
- Navigation involves resolving paths through directory entries
- The OS uses a directory cache (dcache) for performance
-Page 4
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-2.3 System Calls You'll Use
-
-Your implementation will use system calls (directly or through library wrappers):
-System Call
-
-Purpose
-
-OS Actions
-
-open() / create() Open or create a le Allocate le descriptor, load inode, check permissions
-read() / write() I/O operations
-Update le oset, transfer data via buers, mark dirty
-close()
-Release le descriptor Decrement reference count, ush buers if needed
-stat()
-Get le metadata Retrieve inode information
-unlink()
-Remove le
-Decrement inode reference count, delete if zero
-mkdir() / rmdir() Directory operations Create/remove directory entry, allocate inode
-rename()
-Move/rename le
-Update directory entries atomically
-Table 2: System Calls and OS Actions
-3 Learning Resources
-Essential Reading Before Implementation
-
-Review these resources to understand the le system concepts your project will implement.
-Understanding the underlying mechanisms will help you design better error handling and
-user feedback.
-3.1 File Systems Fundamentals
-Required Reading (30-45 minutes):
-
-OSTEP Chapter 39: Files and Directories
-Understand le descriptors, inodes, and directory structures
- OSTEP Chapter 40: File System Implementation
-Learn about data structures and how the OS manages les
- Linux System Calls Manual
-Reference for open(), read(), write(), stat(), etc.
-
-
-3.2 Language-Specic File I/O
-Choose based on your implementation language:
-
-os module, pathlib module
- C/C++: lesystem library (C++17), stdio.h
- Java: java.nio.le package tutorial
- C#: System.IO namespace
- Python:
-
-Page 5
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-3.3 GUI Development Resources
-Framework Documentation:
-
-Ocial Tutorial
- PyQt5: Ocial Docs
- Java Swing: Oracle Swing Tutorial
- C# WinForms: Microsoft Documentation
- Python Tkinter:
-
-3.4 Additional Resources
- Understanding File Permissions: Linux File Permissions Guide
-
-Your OS textbook chapter on le systems
- Video: OS File Systems Lecture Videos
- Error Handling Best Practices:
-
-4 Project Overview
-4.1 What You'll Build
-
-You will create a le management system with a graphical user interface that demonstrates your
-understanding of operating system le operations. Your application will:
- Provide a visual interface for le system navigation
- Implement all basic le operations (Create, Read, Update, Delete) using OS APIs
- Support directory operations and navigation
- Display le metadata (properties from inodes)
- Handle errors gracefully with user feedback
- Maintain data integrity during operations
- Demonstrate understanding of le descriptors and system calls
-4.2 Technology Choices
-Flexibility is Key!
-
-You may use any programming language and GUI framework you're comfortable with.
-Choose based on your experience and what will best demonstrate your skills. The important
-part is the functionality, not the specic technology.
-
-Page 6
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-Language GUI Framework Options
-
-C/C++ Qt, GTK+, or Windows Forms (via C++/CLI)
-Python Tkinter, PyQt5, Kivy, or wxPython
-Java
-Swing or JavaFX
-C#
-Windows Forms or WPF
-Web-based Electron with Node.js
-Other
-Any language with GUI support
-Table 3: Technology Stack Options
-5 Functional Requirements
-5.1 Core Operations (Required)
-
-Your le manager must implement all of the following operations:
-Operation
-
-Description
-
-User Interface
-
-CREATE Create new les and directories Dialog or form for name/content
-READ
-View le contents
-Display area or editor window
-UPDATE Modify existing les
-Edit capability with save function
-DELETE Remove les and directories Conrmation dialog, then removal
-RENAME Change le/directory names Input dialog for new name
-NAVIGATE Browse directory structure
-Tree view or list with folders
-Table 4: Required Core Operations
-5.2 Additional Features (Optional but Encouraged)
-
-Consider implementing these features for enhancement:
- File search functionality
- Copy/paste operations
- File properties display (size, permissions, timestamps from stat())
- Multiple le selection
- Drag and drop support
- Context menus (right-click)
- Keyboard shortcuts
- File type icons
- Recent les list
- Undo/redo operations
-Page 7
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-6 Implementation Guidelines
-6.1 Minimum GUI Components
-
-Your interface should include at least:
-1. File/Directory Display: A list or tree view showing les and folders
-2. Action Buttons/Menu: Clear ways to trigger CRUD operations
-3. Current Path Display: Show where the user is in the le system
-4. Status/Feedback Area: Inform users of operation results
-5. File Content Area: For viewing/editing le contents (can be a separate window)
-6.2 OS-Level Considerations
-6.2.1 File Handle Management
-Critical: Always Close File Handles!
-
-When you open a le, the OS allocates a le descriptor. Failing to close it wastes kernel
-resources and can cause "too many open les" errors. Always close les in a nally block or
-use language constructs that auto-close (like Python's with statement).
-6.2.2 Permission Handling
-
-Your application must respect OS-level permissions:
- Check if les are readable/writable before operations
- Handle permission denied errors gracefully
- Display appropriate error messages when permission is denied
- Consider read-only le systems (CD-ROMs, protected system folders)
-6.2.3 Atomic Operations
-
-Some operations should be atomic (all-or-nothing):
- File rename: Use OS rename() which is typically atomic
- File move: May require copy + delete; handle failure at each step
- Directory operations: Create parent directories if needed
-
-Page 8
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-6.3 Error Handling
-Robust Error Handling Required
-
-Your application should gracefully handle all error conditions and display user-friendly messages. Map OS error codes to meaningful user messages.
-Common error scenarios to handle:
- File/directory already exists (EEXIST)
- File not found (ENOENT)
- Permission denied (EACCES)
- Disk space issues (ENOSPC)
- Invalid le names (path too long, illegal characters)
- Files in use by other processes (EBUSY)
- Network drive disconnections (EIO)
- Read-only le system (EROFS)
-6.4 Code Structure
-
-Organize your code professionally:
- Separation of Concerns: Keep GUI code separate from le operations
- File Operations Layer: Create a dedicated module/class for OS interactions
- Error Handling: Consistent error checking and reporting
- Comments: Explain complex operations and design decisions
- Constants: Dene magic numbers and strings as constants
- Functions: Break operations into logical, reusable functions
-7 Testing Requirements
-7.1 Test Scenarios
-
-Test your application with these scenarios:
-7.1.1 Basic Operations
-
-1. Create a le with content
-2. Read the le back
-3. Update the content
-4. Rename the le
-5. Delete the le
-Page 9
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-7.1.2 Directory Operations
-
-1. Create nested directories
-2. Navigate up and down the tree
-3. Delete empty and non-empty directories
-
-7.1.3 Edge Cases
-
-1. Very long le names (test OS path limits)
-2. Special characters in names
-3. Empty les (zero-byte les)
-4. Large les (test with at least 1MB)
-5. Attempting to delete system les (should fail gracefully)
-6. Files with no permissions
-7. Paths with spaces and special characters
-8. Concurrent access (open le in another program)
-
-Page 10
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-8 Deliverables
-
-Component
-
-Source Code
-
-Requirements
-
-All source les
- Build instructions
- Dependencies list
- Implementation overview
- Design decisions
- OS concepts demonstrated
- Challenges faced
- Testing results
- Reection questions answered
- 4-6 pages
- 3-5 minutes
- Show all CRUD operations
- Demonstrate error handling
- Explain key features
-
-
-Report (PDF)
-
-Demo Video
-
-Table 5: Deliverables and Requirements
-9 Report Guidelines
-
-Your report should be a professional technical document (4-6 pages) containing:
-9.1 Required Sections
-1. Introduction
-
-Brief project overview
- Technologies chosen and why
-
-
-Page 11
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-2. Operating Systems Concepts
- Which system calls your application uses
- How your GUI abstracts OS operations
- Discussion of le descriptors and inodes in your context
- How you handle le metadata
-3. Design and Architecture
- High-level architecture diagram
- Key design decisions
- Data structures used
- Separation between GUI and OS layer
-4. Implementation
- Core algorithms/approaches
- How you handle le operations (with code snippets)
- GUI framework integration
- Error handling strategy
-5. Testing
- Test cases performed
- Results and any issues found
- Performance observations
-6. Reection Questions (see Section 11)
- Answer all reection questions thoroughly
- Demonstrate understanding of OS concepts
-7. Challenges and Solutions
- Technical diculties encountered
- How you solved them
- What you learned
-8. Conclusion
- Project summary
- Future improvements
- Reection on learning outcomes
-10 Demo Video Guidelines
-
-Create a 3-5 minute video demonstrating your le manager:
-Page 12
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-10.1 Video Structure
-1. Introduction (30 seconds)
-
-Your name
- Brief overview of your implementation
- Technologies used
-
-
-2. Demonstration (2-3 minutes)
- Create a new le with content
- View the le
- Edit and save changes
- Rename the le
- Create a directory
- Move/copy le to new directory
- Delete operations
- Show error handling (try invalid operations, permission denied, etc.)
-3. Code Walkthrough (1 minute)
- Show key functions briey
- Highlight interesting implementation details
- Point out OS system call usage
-4. Conclusion (30 seconds)
- Summarize what was shown
- Mention any special features
-Video Recording Tips
-
-Use screen recording software (OBS Studio is free)
- Ensure audio is clear
- Keep the pace steady - don't rush
- Have a script or outline ready
-
-
-11 Reection Questions
-Answer These in Your Report
-
-These questions assess your understanding of the operating systems concepts demonstrated
-in this project. Provide thoughtful, detailed answers in your report.
-Page 13
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-11.1 File System Abstractions
-Question 1: System Call Translation
-
-When you call a high-level function in your chosen language to create a le (e.g., Python's
-, Java's Files.createFile(), C++'s ofstream), what sequence of OS system calls is actually invoked? Describe the journey from your application code to the le system.
-open()
-
-Hint: Consider open(), create(), write(), and close() system calls.
-
-Question 2: File Descriptors
-
-Explain what a le descriptor is and why the operating system uses this abstraction. What
-happens at the OS level when your application:
- Opens a le (gets a le descriptor)?
- Reads from the le?
- Closes the le?
-What would happen if your application opened many les but never closed them?
-Question 3: Inodes and Metadata
-
-Your le manager displays le properties (size, modication time, permissions). Where does
-this information come from? Explain:
- What an inode is and what it contains
- How the OS retrieves this information (which system call?)
- Why lenames are NOT stored in inodes
-11.2 Directory Operations
-Question 4: Directory Traversal
-
-When your application navigates through directories, what is actually happening at the OS
-level? Explain:
- How directories are structured (what do they contain?)
- What happens when you "open" a directory
- How the OS resolves a full path like /home/user/documents/file.txt
-11.3 Error Handling and Edge Cases
-Question 5: Permission Denied
-
-Consider what happens when your application tries to delete a le but receives a "permission
-denied" error. Explain:
- At what point does the OS check permissions?
- What determines whether a user can delete a le?
- How does your application detect and handle this error?
-Page 14
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-Bonus: What's the dierence between le permissions and directory permissions? Can you read
-a le if the directory containing it is not readable?
-
-Question 6: Atomicity
-
-When your application renames a le, the operation appears to happen instantly. Explain:
- Why rename operations are typically atomic in UNIX-like systems
- What could go wrong if rename was NOT atomic
- How your application would handle a rename operation that fails midway
-11.4 Performance Considerations
-Question 7: Buering
-
-Most le I/O uses buering for performance. Explain:
- What buering means in the context of le operations
- Where buering happens (application level? OS level? both?)
- How this aects what you see when writing to a le
- What happens if a program crashes before buers are ushed?
-
-11.5 Real-World Applications
-Question 8: File Manager Comparison
-
-Compare your le manager to a professional one (Windows Explorer, macOS Finder, or GNOME
-Files):
- What features do they have that yours doesn't?
- What OS capabilities would you need to implement those features?
- What trade-os exist between feature richness and complexity?
-12 Grading Rubric
-
-Your project will be evaluated on the following criteria. Specic point values are determined by the
-instructor and may vary by semester.
-
-Page 15
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-Category
-
-Core Functionality
-
-User Interface
-
-Error Handling
-
-Code Quality
-Report
-
-Criteria
-
-Create operations work correctly
- Read operations work correctly
- Update operations work correctly
- Delete operations work correctly
- Directory navigation works
- Rename operations work
- Clean, intuitive design
- Proper feedback to user
- Error messages displayed appropriately
- Current path clearly displayed
- Status updates visible
- Handles permission errors
- Handles le not found
- Handles already exists errors
- Properly closes le handles
- Prevents data loss
- Well-organized code structure
- Separation of GUI and le operations
- Comments and documentation
- Proper use of OS APIs
- Complete and professional
- Technical depth
- OS concepts well explained
-Page 16
-Department of Computer Science
- Reection questions answered thoroughly
-
-
-CS 3502: Operating Systems Project 3: File System Implementation
-13 Submission Instructions
-Submit to D2L by the due date (see D2L)
-
-Late submissions will incur penalties per the course policy. The drop box closes at the end
-of the late period, and no submissions will be accepted after that.
-13.1 Required Submission Components
-1. Source Code:
-
-ZIP le containing all source les
- Include a README with build/run instructions
- List all dependencies
- Include sample les for testing (optional)
-
-
-2. Report:
- PDF format (CS3502_P3_YourName.pdf)
- 4-6 pages
- Professional formatting
- All reection questions answered
-3. Demo Video:
- Upload to YouTube (unlisted) or similar platform
- Provide link in D2L submission comments
- Ensure link works before submitting
- Keep video le if platform link expires
-14 Tips for Success
-14.1 Development Approach
-Start Simple!
-
-Get basic le listing working rst, then add operations one at a time. Test each operation
-thoroughly before moving on. The OS will punish you for mistakes (data loss, corrupted
-les), so be methodical.
-1. Create basic GUI layout
-2. Implement le listing (read directory)
-3. Add create le functionality
-4. Implement read/display
-5. Add update capabilities
-Page 17
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-6. Implement delete with conrmation
-7. Add directory operations
-8. Polish UI and error handling
-9. Test edge cases extensively
-14.2 Common Pitfalls to Avoid
-
-Not handling permissions properly (test on read-only les!)
- Forgetting to close le handles (leads to resource leaks)
- No conrmation for destructive operations (accidental deletions)
- Poor error messages ("Error occurred" vs "Permission denied: /etc/passwd")
- Hardcoded paths that won't work on other systems
- Not testing with various le types and sizes
- Assuming operations always succeed (check return values!)
- Not handling paths with spaces or special characters
- Testing only on small les (try 100MB+ les)
-
-
-14.3 Resources
- Python: os, pathlib, shutil modules
-
-lesystem library (C++17), dirent.h, sys/stat.h
- Java: java.nio.le package
- Your OS assignment code for reference
- Stack Overow for specic issues (but understand, don't just copy!)
- OS textbook chapters on le systems
- Man pages for system calls (e.g., man 2 open)
- C/C++:
-
-15 Getting Started - Example Structure
-15.1 Basic File Operations (Pseudocode)
-
-
-
-
-
-class FileManager :
-def create_file ( self , path , content ) :
-" " " Create a new file with content " " "
-if file_exists ( path ) :
-show_error ( " File already exists " )
-return False
-try :
-
-Page 18
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-# Opens file , gets file descriptor from OS
-write_file ( path , content )
-update_display ()
-return True
-except PermissionError :
-show_error ( " Permission denied : cannot create file in this directory " )
-return False
-except Exception as e :
-show_error ( f" Error creating file : { str ( e ) } " )
-return False
-def read_file ( self , path ) :
-" " " Read and return file contents " " "
-if not file_exists ( path ) :
-show_error ( " File not found " )
-return None
-try :
-# OS opens file , allocates file descriptor
-# OS checks permissions
-content = read_file_content ( path )
-# OS closes file descriptor when done
-return content
-except PermissionError :
-show_error ( " Permission denied : cannot read this file " )
-return None
-except Exception as e :
-show_error ( f" Error reading file : { str ( e ) } " )
-return None
-def update_file ( self , path , new_content ) :
-" " " Update existing file with new content " " "
-# Check if file is writable first
-if not file_writable ( path ) :
-show_error ( " File is read - only " )
-return False
-# Similar pattern to create_file ...
-pass
-
-
-
-def delete_file ( self , path ) :
-" " " Delete a file after confirmation " " "
-if confirm_dialog ( f " Delete { path }? " ) :
-try :
-# OS unlinks file ( decrements inode reference count )
-remove_file ( path )
-update_display ()
-return True
-except PermissionError :
-show_error ( " Permission denied : cannot delete this file " )
-return False
-except Exception as e :
-show_error ( f" Error deleting file : { str ( e ) } " )
-return False
-
-Listing 1: Example File Manager Structure
-
-Page 19
-
-Department of Computer Science
-
-
-
-CS 3502: Operating Systems Project 3: File System Implementation
-Remember
-
-Use your operating system's actual le APIs! The above is just pseudocode to illustrate the
-structure and error handling patterns.
-15.2 Recommended Architecture
-
-Structure your code in layers:
-
-GUI Layer (main.py / MainWindow.java / Form1.cs)
-|
-|-- Calls -->
-|
-File Operations Layer (fileops.py / FileOperations.java)
-|
-|-- Uses -->
-|
-OS APIs (open, read, write, close, stat, etc.)
-|
-|-- Translates to -->
-|
-System Calls (kernel)
-
-Good Luck!
-Good Luck with Your File System Project!
-
-Remember: Start early, test thoroughly, understand the OS concepts, and ask questions if you
-need help.
-The OwlTech File Systems Division looks forward to your implementation!
-
-Page 20
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-A Quick Reference - File Operations by Language
-A.1 Python
-
-
-
-
-
-import os
-import shutil
-from pathlib import Path
-
-# Create file ( OS calls open () syscall )
-with open ( ' file . txt ' , 'w ') as f :
-f . write ( ' content ')
-# File descriptor automatically closed when exiting ' with ' block
-# Read file
-with open ( ' file . txt ' , 'r ') as f :
-content = f . read ()
-# Update file
-with open ( ' file . txt ' , 'w ') as f :
-f . write ( ' new content ')
-# Delete file ( OS calls unlink () syscall )
-os . remove ( ' file . txt ')
-# Rename file ( OS calls rename () syscall )
-os . rename ( ' old . txt ' , ' new . txt ')
-# Create directory ( OS calls mkdir () syscall )
-os . mkdir ( ' new_dir ')
-# List directory ( OS calls opendir () and readdir () syscalls )
-files = os . listdir ( '. ')
-# Get file metadata ( OS calls stat () syscall )
-stats = os . stat ( ' file . txt ')
-print ( f " Size : { stats . st_size } , Modified : { stats . st_mtime } " )
-# Check permissions
-if os . access ( ' file . txt ' , os . R_OK ) :
-print ( " File is readable " )
-if os . access ( ' file . txt ' , os . W_OK ) :
-print ( " File is writable " )
-
-
-
-
-
-A.2 C++
-
-
-
-
-
-# include < filesystem >
-# include < fstream >
-namespace fs = std :: filesystem ;
-// Create file
-std :: ofstream file ( " file . txt " ) ;
-file << " content " ;
-file . close () ; // Release file descriptor
-// Read file
-
-Page 21
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-std :: ifstream infile ( " file . txt " ) ;
-std :: string content (( std :: istreambuf_iterator < char >( infile ) ) ,
-std :: istreambuf_iterator < char >() ) ;
-infile . close () ;
-// Delete file
-fs :: remove ( " file . txt " );
-// Rename file
-fs :: rename ( " old . txt " , " new . txt " ) ;
-// Create directory
-fs :: create_directory ( " new_dir " ) ;
-// List directory
-for ( const auto & entry : fs :: directory_iterator (" . " ) ) {
-std :: cout << entry . path () << std :: endl ;
-}
-// Get file metadata
-auto file_time = fs :: last_write_time ( " file . txt " ) ;
-auto file_size = fs :: file_size ( " file . txt " ) ;
-// Check permissions
-auto perms = fs :: status ( " file . txt " ) . permissions () ;
-if (( perms & fs :: perms :: owner_read ) != fs :: perms :: none ) {
-std :: cout << " Owner can read \ n " ;
-}
-
-
-
-A.3 Java
-
-
-
-
-
-
-
-import java . nio . file .*;
-import java . io . IOException ;
-import java . nio . file . attribute .*;
-
-// Create file
-Path path = Paths . get ( " file . txt " ) ;
-Files . write ( path , " content " . getBytes () ) ;
-// Read file
-String content = new String ( Files . readAllBytes ( path ) ) ;
-// Update file
-Files . write ( path , " new content " . getBytes () ) ;
-// Delete file
-Files . delete ( path ) ;
-// Rename file
-Files . move ( Paths . get ( " old . txt " ) , Paths . get ( " new . txt " ) ) ;
-// Create directory
-Files . createDirectory ( Paths . get ( " new_dir " ) ) ;
-// List directory
-Files . list ( Paths . get ( " . " ) ) . forEach ( System . out :: println ) ;
-
-Page 22
-
-Department of Computer Science
-
-CS 3502: Operating Systems Project 3: File System Implementation
-// Get file metadata
-BasicFileAttributes attrs = Files . readAttributes ( path , BasicFileAttributes . class ) ;
-System . out . println ( " Size : " + attrs . size () ) ;
-System . out . println ( " Modified : " + attrs . lastModifiedTime () ) ;
-// Check permissions
-if ( Files . isReadable ( path ) ) {
-System . out . println ( " File is readable " ) ;
-}
-if ( Files . isWritable ( path ) ) {
-System . out . println ( " File is writable " ) ;
-}
-
-
-
-
-
-B Understanding Error Codes
-
-Common POSIX error codes you might encounter:
-Error Code Meaning & User Message
-
-EACCES
-ENOENT
-EEXIST
-EISDIR
-ENOTDIR
-ENOSPC
-EROFS
-EMFILE
-EINVAL
-
-Permission denied. "You don't have permission to access this le."
-No such le or directory. "File not found."
-File exists. "A le with this name already exists."
-Is a directory. "Cannot perform this operation on a directory."
-Not a directory. "Cannot perform this operation: not a directory."
-No space left on device. "Not enough disk space available."
-Read-only le system. "Cannot modify les on a read-only volume."
-Too many open les. "Too many les are open. Close some les and try again."
-Invalid argument. "Invalid le name or path."
-Table 7: Common Error Codes
-
-Page 23
-
-Department of Computer Science
-
-
